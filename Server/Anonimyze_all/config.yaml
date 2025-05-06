@@ -1,0 +1,40 @@
+global_config:
+  show_fps: false
+  face_detector_enabled: false
+  face_model_file: "res10_300x300_ssd_iter_140000.caffemodel"
+  face_config_file: "deploy.prototxt"
+  face_confidence_threshold: 0.5
+
+  kalman_enabled: true
+  iou_threshold: 0.3
+  max_missed_frames: 5
+  red_box_scale: 1.4
+
+  pose_estimator_enabled: true
+  pose_checkpoint_path: "checkpoint_iter_370000.pth"
+  pose_height_size: 224
+  pose_upsample_ratio: 2
+  pose_fp16: true
+  pose_confidence_threshold: 0.6
+  track_pose: true
+  smooth_pose: true
+  pose_face_anonymize: true
+
+  cam_width: 640
+  cam_height: 480
+  target_fps: 20
+
+streams:
+  - name: camera1
+    # This example uses an RTSP input from mediamtx on localhost. Replace as needed.
+    input_url: "rtsp://127.0.0.1:8554/camera1"
+    output_url: "rtsp://127.0.0.1:8554/camera1_anon"
+    face_detector_enabled: false  # can override global if desired
+    pose_estimator_enabled: true  # can override global if desired
+
+  # - name: camera2
+  #   # This could be a USB camera pipeline; or another RTSP, depending on your setup.
+  #   input_url: "v4l2src device=/dev/video0"   # example of a direct camera pipeline
+  #   output_url: "rtsp://127.0.0.1:8554/camera2_anon"
+  #   face_detector_enabled: true
+  #   pose_estimator_enabled: true

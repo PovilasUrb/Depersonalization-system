@@ -1,0 +1,6 @@
+*.db
+*.pth
+*.prototxt
+*.caffemodel
+*venv/*
+*.tflite

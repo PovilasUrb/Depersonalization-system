@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Real Time Embedded Depersonalization System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Icons -->
+    <link href="/static/css/icon.css" rel="stylesheet">
+    <style>
+        video::-webkit-media-controls-panel,
+        video::-webkit-media-controls {
+            display: none !important;
+            -webkit-appearance: none;
+        }
+
+        body {
+            background-color: #eaeaea;
+            font-size: 0.9rem;
+        }
+
+        video#liveStream {
+            width: 100%;
+            height: 780px;
+            background-color: #fff;
+        }
+
+        .param-inline {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .param-inline label {
+            margin-right: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .param-inline input.form-control-sm {
+            width: 6ch;
+            margin-right: 1rem;
+        }
+
+        .param-inline .form-check {
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="#">Real Time Embedded Depersonalization System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <div class="ms-auto d-flex gap-2">
+                    <button class="btn btn-outline-secondary d-flex align-items-center" data-bs-toggle="modal"
+                        data-bs-target="#networkModal">
+                        <span class="material-icons me-1">settings_ethernet</span>
+                        Network
+                    </button>
+                    <button class="btn btn-outline-secondary d-flex align-items-center" data-bs-toggle="modal"
+                        data-bs-target="#userModal">
+                        <span class="material-icons me-1">person</span>
+                        Change password
+                    </button>
+                    <button id="restartBtn" class="btn btn-outline-danger d-flex align-items-center">
+                        <span class="material-icons me-1">restart_alt</span>
+                        Restart
+                    </button>
+                    <a href="/logout" class="btn btn-outline-warning d-flex align-items-center">
+                        <span class="material-icons me-1">logout</span>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="container-fluid my-3">
+        <div class="row g-3">
+            <!-- LEFT COLUMN: Stream & Device Info -->
+            <aside class="col-lg-2">
+                <div class="card p-2 mb-3">
+                    <h6 class="fw-bold">Current Stream Info</h6>
+                    <hr class="my-1">
+                    <!-- People is removed -->
+                    <p class="mb-1">
+                        <strong>FPS:</strong>
+                        <span id="fps-value">--</span>
+                    </p>
+                    <p class="mb-1">
+                        <strong>Latency:</strong>
+                        <span id="latency-value">--</span>
+                    </p>
+                    <p class="mb-1">
+                        <strong>Faces:</strong>
+                        <span id="faces-value">--</span>
+                    </p>
+                    <p class="mb-1">
+                        <strong>Skeletons:</strong>
+                        <span id="skeletons-value">--</span>
+                    </p>
+                </div>
+                <div class="card p-2">
+                    <h6 class="fw-bold">Device Info</h6>
+                    <hr class="my-1">
+                    <p class="mb-1"><strong>Temp:</strong> <span id="temp-value">-- °C</span></p>
+                    <p class="mb-1"><strong>CPU:</strong> <span id="cpu-value">--%</span></p>
+                    <p class="mb-1"><strong>GPU:</strong> <span id="gpu-value">--%</span></p>
+                    <p class="mb-1"><strong>RAM:</strong> <span id="ram-value">--/--GB</span></p>
+                </div>
+            </aside>
+
+            <!-- CENTER COLUMN: Video Stream -->
+            <main class="col-lg-8">
+                <div id="videoContainer" style="position: relative; width: 100%;">
+                    <video id="liveStream" autoplay muted
+                        style="width: 100%; height: 780px; background-color: #000;"></video>
+                    <div id="spinner" style="
+                        position: absolute;
+                        color:#fff;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        z-index: 9999;
+                        display: none;">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- RIGHT COLUMN: Model Parameters -->
+            <aside class="col-lg-2">
+                <div class="card p-2">
+                    <h6 class="fw-bold">Edit Model Parameters</h6>
+                    <hr class="my-2">
+                    <!-- FACE DETECTOR SECTION -->
+                    <div class="mb-2"><strong>Face Detector</strong></div>
+                    <div class="param-inline">
+                        <label for="detectorState">State:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="detectorState" checked>
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="confidenceThreshold">Conf:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm" id="confidenceThreshold"
+                            value="0.5">
+                    </div>
+                    <div class="param-inline">
+                        <label for="kalmanFilterState">Kalman:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="kalmanFilterState" checked>
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="kalmanIouThreshold">IOU:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm" id="kalmanIouThreshold"
+                            value="0.5">
+                    </div>
+                    <div class="param-inline">
+                        <label for="maxMissedTrackerFrames">Missed:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm"
+                            id="maxMissedTrackerFrames" value="8">
+                    </div>
+                    <div class="param-inline">
+                        <label for="trackerBoxScale">Scale:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm" id="trackerBoxScale"
+                            value="1.4">
+                    </div>
+                    <hr class="my-2">
+                    <!-- POSE DETECTOR SECTION -->
+                    <div class="mb-2"><strong>Pose Detector</strong></div>
+                    <div class="param-inline">
+                        <label for="poseEstimationState">State:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="poseEstimationState" checked>
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="poseConfidenceThreshold">Conf:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm"
+                            id="poseConfidenceThreshold" value="0.5">
+                    </div>
+                    <div class="param-inline">
+                        <label for="inputHeightSize">Height:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm" id="inputHeightSize"
+                            value="160">
+                    </div>
+                    <div class="param-inline">
+                        <label for="upsampleRatio">Upsample:</label>
+                        <input type="text" maxlength="4" class="form-control form-control-sm" id="upsampleRatio"
+                            value="2.0">
+                    </div>
+                    <div class="param-inline">
+                        <label for="fp16State">FP16:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="fp16State">
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="poseTrackingState">Track:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="poseTrackingState">
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="poseSmoothingState">Smooth:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="poseSmoothingState">
+                        </div>
+                    </div>
+                    <div class="param-inline">
+                        <label for="faceAnonymizationState">Anon:</label>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="faceAnonymizationState">
+                        </div>
+                    </div>
+                    <!-- Sync Settings Button -->
+                    <div class="mt-3">
+                        <button id="syncSettingsBtn" class="btn btn-primary w-100">Sync Settings</button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- NETWORK SETTINGS MODAL -->
+    <div class="modal fade" id="networkModal" tabindex="-1" aria-labelledby="networkModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="networkForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="networkModalLabel">Network Settings (eth0)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="ipAddress" class="form-label">IP Address</label>
+                            <input type="text" class="form-control" id="ipAddress" placeholder="192.168.1.100" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subnetMask" class="form-label">Subnet Mask</label>
+                            <input type="text" class="form-control" id="subnetMask" placeholder="255.255.255.0"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gateway" class="form-label">Gateway</label>
+                            <input type="text" class="form-control" id="gateway" placeholder="192.168.1.1" required>
+                        </div>
+                        <div id="networkFeedback" class="text-danger"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER SETTINGS MODAL -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="passwordForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userModalLabel">Change Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="currentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control" id="confirmNewPassword" required>
+                        </div>
+                        <div id="passwordFeedback" class="text-danger"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <!-- hls.js for HLS playback -->
+    <script src="/static/js/hls.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchEnvSettings();
+        });
+
+        function fetchEnvSettings() {
+            fetch('/api/get_settings')
+                .then(response => response.json())
+                .then(data => {
+                    // data is an object like { "FACE_DETECTOR_ENABLED": "True", 
+                    //                           "FACE_CONFIDENCE_THRESHOLD": "0.5", ... }
+
+                    // Convert to boolean for checkboxes:
+                    document.getElementById("detectorState").checked =
+                        data["FACE_DETECTOR_ENABLED"] === "True";
+
+                    document.getElementById("confidenceThreshold").value =
+                        data["FACE_CONFIDENCE_THRESHOLD"] ?? "0.5";
+
+                    document.getElementById("kalmanFilterState").checked =
+                        data["KALMAN_ENABLED"] === "True";
+
+                    document.getElementById("kalmanIouThreshold").value =
+                        data["IOU_THRESHOLD"] ?? "0.3";
+
+                    document.getElementById("maxMissedTrackerFrames").value =
+                        data["MAX_MISSED_FRAMES"] ?? "5";
+
+                    document.getElementById("trackerBoxScale").value =
+                        data["RED_BOX_SCALE"] ?? "1.4";
+
+                    // POSE
+                    document.getElementById("poseEstimationState").checked =
+                        data["POSE_ESTIMATOR_ENABLED"] === "True";
+
+                    document.getElementById("poseConfidenceThreshold").value =
+                        data["POSE_CONFIDENCE_THRESHOLD"] ?? "0.6";
+
+                    document.getElementById("inputHeightSize").value =
+                        data["POSE_HEIGHT_SIZE"] ?? "160";
+
+                    document.getElementById("upsampleRatio").value =
+                        data["POSE_UPSAMPLE_RATIO"] ?? "1";
+
+                    document.getElementById("fp16State").checked =
+                        data["POSE_FP16"] === "True";
+
+                    document.getElementById("poseTrackingState").checked =
+                        data["TRACK_POSE"] === "True";
+
+                    document.getElementById("poseSmoothingState").checked =
+                        data["SMOOTH_POSE"] === "True";
+
+                    document.getElementById("faceAnonymizationState").checked =
+                        data["POSE_FACE_ANONIMYZE"] === "True";
+                })
+                .catch(error => {
+                    console.error("Error loading .env settings:", error);
+                });
+        }
+        document.getElementById("syncSettingsBtn").addEventListener("click", function () {
+            // Gather all form values
+            const faceDetectorEnabled = document.getElementById("detectorState").checked;
+            const faceConfidenceThreshold = document.getElementById("confidenceThreshold").value;
+            const kalmanEnabled = document.getElementById("kalmanFilterState").checked;
+            const iouThreshold = document.getElementById("kalmanIouThreshold").value;
+            const maxMissedFrames = document.getElementById("maxMissedTrackerFrames").value;
+            const redBoxScale = document.getElementById("trackerBoxScale").value;
+
+            const poseEstimatorEnabled = document.getElementById("poseEstimationState").checked;
+            const poseConfidenceThreshold = document.getElementById("poseConfidenceThreshold").value;
+            const poseHeightSize = document.getElementById("inputHeightSize").value;
+            const poseUpsampleRatio = document.getElementById("upsampleRatio").value;
+            const poseFp16 = document.getElementById("fp16State").checked;
+            const trackPose = document.getElementById("poseTrackingState").checked;
+            const smoothPose = document.getElementById("poseSmoothingState").checked;
+            const poseFaceAnonymize = document.getElementById("faceAnonymizationState").checked;
+
+            // Prepare JSON body matching your .env variable names:
+            // (adjust as you see fit, but here's a direct correlation)
+            const payload = {
+                "FACE_DETECTOR_ENABLED": faceDetectorEnabled,
+                "FACE_CONFIDENCE_THRESHOLD": faceConfidenceThreshold,
+                "KALMAN_ENABLED": kalmanEnabled,
+                "IOU_THRESHOLD": iouThreshold,
+                "MAX_MISSED_FRAMES": maxMissedFrames,
+                "RED_BOX_SCALE": redBoxScale,
+
+                "POSE_ESTIMATOR_ENABLED": poseEstimatorEnabled,
+                "POSE_CONFIDENCE_THRESHOLD": poseConfidenceThreshold,
+                "POSE_HEIGHT_SIZE": poseHeightSize,
+                "POSE_UPSAMPLE_RATIO": poseUpsampleRatio,
+                "POSE_FP16": poseFp16,
+                "TRACK_POSE": trackPose,
+                "SMOOTH_POSE": smoothPose,
+                "POSE_FACE_ANONIMYZE": poseFaceAnonymize
+            };
+
+            // Call the /api/sync_settings endpoint
+            fetch('/api/sync_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(response => {
+                    // Attempt to parse JSON *inside* the same .then so we still have 'response'
+                    return response.json().then(data => {
+                        // If server responded with 4xx/5xx, 'response.ok' will be false
+                        if (!response.ok) {
+                            // We throw to jump to .catch()
+                            // Use data.error if your Flask code returns {"error": "..."}
+                            throw new Error(data.error || `HTTP ${response.status} error`);
+                        }
+                        // Otherwise, everything is good
+                        return data; // pass 'data' down to next .then(...)
+                    });
+                })
+                .then(data => {
+                    // We are here only if response was .ok
+                    alert("Settings synced and anonymization service has been restarted successfully!\nIt may take 2-3 minutes for video to appear");
+                })
+                .catch(err => {
+                    alert("Error syncing settings: " + err.message);
+                });
+        });
+        // --------------------- Device info polling ---------------------
+        function fetchDeviceInfo() {
+            fetch('/api/device_info')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('temp-value').innerText = data.temperature;
+                    document.getElementById('cpu-value').innerText = data.cpu;
+                    document.getElementById('gpu-value').innerText = data.gpu;
+                    document.getElementById('ram-value').innerText = data.ram;
+                })
+                .catch(error => console.error('Error fetching device info:', error));
+        }
+        setInterval(fetchDeviceInfo, 1000);
+        fetchDeviceInfo();
+
+        // --------------------- Pipeline metrics polling (GET /metrics) ---------------------
+        function fetchPipelineMetrics() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    // data should be like: { "fps": float, "latency": float, "face_count": int, "skeleton_count": int }
+                    document.getElementById('fps-value').innerText = data.fps.toFixed(1);
+                    document.getElementById('latency-value').innerText = data.latency.toFixed(1) + " ms";
+                    document.getElementById('faces-value').innerText = data.face_count;
+                    document.getElementById('skeletons-value').innerText = data.skeleton_count;
+                })
+                .catch(error => console.error('Error fetching pipeline metrics:', error));
+        }
+        setInterval(fetchPipelineMetrics, 1000);
+        fetchPipelineMetrics();
+
+        // --------------------- HLS Setup (unchanged) ---------------------
+        const video = document.getElementById('liveStream');
+        const streamUrl = "{{ stream_url }}";
+        const spinner = document.getElementById('spinner');
+        let manifestRetryInterval = null;
+        let hls;
+
+        function showSpinner() {
+            spinner.style.display = 'block';
+        }
+        function hideSpinner() {
+            spinner.style.display = 'none';
+        }
+        function initializeHls() {
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    maxBufferLength: 60,
+                    maxMaxBufferLength: 120,
+                    liveSyncDurationCount: 3,
+                });
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    console.error("HLS error:", data);
+                    if (data.details === 'manifestLoadError' && data.response && data.response.code === 404) {
+                        showSpinner();
+                        if (!manifestRetryInterval) {
+                            manifestRetryInterval = setInterval(checkManifest, 1000);
+                        }
+                    }
+                });
+                hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    console.log("Manifest parsed, video should now play.");
+                    hideSpinner();
+                    video.play().catch(err => console.error("Video play error:", err));
+                });
+                hls.loadSource(streamUrl);
+                hls.attachMedia(video);
+            } else {
+                video.src = streamUrl;
+                video.play().catch(err => console.error("Video play error:", err));
+            }
+        }
+        function checkManifest() {
+            fetch(streamUrl)
+                .then(response => {
+                    if (response.ok) {
+                        clearInterval(manifestRetryInterval);
+                        manifestRetryInterval = null;
+                        hideSpinner();
+                        console.log("Manifest is now available. Reloading stream...");
+                        hls.loadSource(streamUrl);
+                        hls.attachMedia(video);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error checking manifest:", err);
+                });
+        }
+        initializeHls();
+
+        // --------------------- Network & Password forms (unchanged) ---------------------
+        document.getElementById("networkForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const ip = document.getElementById("ipAddress").value;
+            const subnet = document.getElementById("subnetMask").value;
+            const gateway = document.getElementById("gateway").value;
+            fetch('/api/update_eth0', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: ip, subnet: subnet, gateway: gateway })
+            })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(result => {
+                    if (result.status === 200) {
+                        alert("Network settings updated successfully.");
+                        var networkModal = bootstrap.Modal.getInstance(document.getElementById('networkModal'));
+                        networkModal.hide();
+                    } else {
+                        document.getElementById("networkFeedback").innerText = result.body.error;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("networkFeedback").innerText = "Error updating network settings.";
+                });
+        });
+
+        document.getElementById("passwordForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById("currentPassword").value;
+            const newPassword = document.getElementById("newPassword").value;
+            const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+            if (newPassword !== confirmNewPassword) {
+                document.getElementById("passwordFeedback").innerText = "New passwords do not match.";
+                return;
+            }
+            fetch('/api/change_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+            })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(result => {
+                    if (result.status === 200) {
+                        alert("Password changed successfully.");
+                        var userModal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                        userModal.hide();
+                    } else {
+                        document.getElementById("passwordFeedback").innerText = result.body.error;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("passwordFeedback").innerText = "Error changing password.";
+                });
+        });
+
+        document.getElementById("restartBtn").addEventListener("click", function () {
+            if (confirm("Are you sure you want to restart the device?")) {
+                fetch('/api/restart_system', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => alert(data.status))
+                    .catch(error => alert("Error restarting device."));
+            }
+        });
+    </script>
+</body>
+
+</html>
